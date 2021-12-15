@@ -29,6 +29,8 @@ Download materials in Docin freely and automatically
 pip install lxml
 pip install fpdf
 pip install requests
+pip install pyimage
+pip install joblib
 ```
 至此，环境搭建完毕
 
