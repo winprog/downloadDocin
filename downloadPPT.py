@@ -81,12 +81,13 @@ def removePictures(path, allNum):
 
 if __name__ == '__main__':
 	# 文件存储的路径
-	path = 'E:\\test\\Docin\\'
+	path = os.path.curdir
 	# 需要的资料的网址
 	# originUrl = 'https://www.docin.com/p-977106193.html?docfrom=rrela'
 	originUrl = input('input the url: ')
 	result = getTiltleUrl(originUrl)
-	title = result[0].split('.')[0]
+	# title = result[0].split('.')[0]
+	title = result[0]
 	url = result[1]
 	print(title, url)
 	allNum = getPictures(url, path)
