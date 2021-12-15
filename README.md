@@ -31,6 +31,7 @@ pip install fpdf
 pip install requests
 pip install pyimage
 pip install joblib
+pip install img2pdf
 ```
 至此，环境搭建完毕
 

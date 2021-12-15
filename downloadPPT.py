@@ -5,6 +5,7 @@ from lxml import etree
 import re, time, random, os
 from joblib import Parallel, delayed
 import multiprocessing
+import img2pdf
 
 def getTiltleUrl(originUrl):
 	# 获取资料的标题和通用的url链接
@@ -87,6 +88,20 @@ def combinePictures2Pdf(path, pdfName, allNum):
 			break;
 	pdf.output(pdfName, "F")
 	pdf.close()
+
+def combinePictures2Pdf2(path, pdfName, allNum):
+	# 合并图片为pdf
+	print('Start combining the pictures...')
+	pagenum = 1
+	file_name = os.path.join(path, str(pagenum) + '.png')
+	cover = Image.open(file_name)
+	width, height = cover.size
+	cover.close()
+
+	filename = pdfName
+	images = [os.path.join(path, str(pagenum)+".png") for pagenum in range(1, allNum)]
+	with open(filename, "wb") as f:
+		f.write(img2pdf.convert(images))
 	
 
 def removePictures(path, allNum):
@@ -116,5 +131,6 @@ if __name__ == '__main__':
 	# allNum = getPictures(url, path)
 	allNum = 227
 	pdfName = os.path.join(path, title + '.pdf')
-	combinePictures2Pdf(path, pdfName, allNum)
+	# combinePictures2Pdf(path, pdfName, allNum)
+	combinePictures2Pdf2(path, pdfName, allNum)
 	removePictures(path, allNum)
