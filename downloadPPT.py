@@ -6,9 +6,22 @@ import re, time, random, os
 from joblib import Parallel, delayed
 import multiprocessing
 import img2pdf
+from contextlib import closing
 
 # 图片保存格式
 PAGE_IMAGE_EXT = ".jpg"
+
+def download(url, headers, local_filename):
+    with open(local_filename, 'wb') as f, closing(requests.get(url, headers=headers, stream=True)) as res:
+        if res.content == b'sid error or Invalid!':
+            print('Downloading picture ' + local_filename + ' failed, and it may be the end page.')
+            f.close()
+            os.remove(local_filename)
+            return False
+
+        for n, chunk in enumerate(res.iter_content(chunk_size=512), start=1):
+            f.write(chunk)
+    return True 
 
 def getTiltleUrl(originUrl):
 	# 获取资料的标题和通用的url链接
@@ -30,15 +43,10 @@ def getPicture(headers, theurl, pagenum, path):
 	# time.sleep(3*random.random())
 	print('Downloading picture ' + str(pagenum))
 	url = theurl + str(pagenum)
-	img_req = requests.get(url=url, headers=headers)
-	if img_req.content==b'sid error or Invalid!':
-		print('Downloading picture ' + str(pagenum) + ' failed, and it may be the end page.')
-		return False
-
 	file_name = os.path.join(path, str(pagenum) + PAGE_IMAGE_EXT)
-	f = open(file_name, 'wb')
-	f.write(img_req.content)
-	f.close()
+
+	if download(url, headers, file_name) is False:
+		return False
 
 	# 将图片保存为标准格式
 	# PIL img P mode can't be save as jpg.
@@ -66,56 +74,39 @@ def getPictures(theurl, path):
 	if num_cores > max_download_thread_count:
 		num_cores = max_download_thread_count 
 	download_more = True
-	start = 1
+	start = 250
 	while download_more:
 		results = Parallel(n_jobs=num_cores)(delayed(getPicture)(headers, theurl, pagenum, path) for pagenum in range(start, start + num_cores))
 		oknum = sum(1 for result in results if result)
 		start += oknum
 		allNum += oknum
 		download_more = oknum == num_cores 
-	return allNum
+	return (start - allNum, allNum)
 
-def combinePictures2Pdf(path, pdfName, allNum):
+def combinePictures2Pdf2(path, pdfName, startNum, allNum):
 	# 合并图片为pdf
 	print('Start combining the pictures...')
-	pagenum = 1
-	file_name = os.path.join(path, str(pagenum) + PAGE_IMAGE_EXT)
-	cover = Image.open(file_name)
-	width, height = cover.size
-	cover.close()
-	pdf = FPDF(unit = "pt", format = [width, height])
-	while allNum>=pagenum:
-		try:
-			print('combining picture ' + str(pagenum))
-			file_name = os.path.join(path, str(pagenum) + PAGE_IMAGE_EXT)
-			pdf.add_page()
-			pdf.image(file_name, 0, 0)
-			pagenum += 1
-		except Exception as e:
-			print(e)
-			break;
-	pdf.output(pdfName, "F")
-	pdf.close()
+	pagenum = startNum
+	file_name = os.path.join(path, str(startNum) + PAGE_IMAGE_EXT)
+	if os.path.exists(file_name) is False:
+		print("No pictures to combine pdf.")
+		return
 
-def combinePictures2Pdf2(path, pdfName, allNum):
-	# 合并图片为pdf
-	print('Start combining the pictures...')
-	pagenum = 1
-	file_name = os.path.join(path, str(pagenum) + PAGE_IMAGE_EXT)
 	cover = Image.open(file_name)
 	width, height = cover.size
 	cover.close()
 
 	filename = pdfName
-	images = [os.path.join(path, str(pagenum)+PAGE_IMAGE_EXT) for pagenum in range(1, allNum)]
-	with open(filename, "wb") as f:
-		f.write(img2pdf.convert(images))
+	images = [os.path.join(path, str(pagenum)+PAGE_IMAGE_EXT) for pagenum in range(startNum, startNum + allNum)]
+	if len(images) > 0:
+		with open(filename, "wb") as f:
+			f.write(img2pdf.convert(images))
 	
 
-def removePictures(path, allNum):
+def removePictures(path, startNum, allNum):
 	# 删除原图片
-	pagenum = 1
-	while allNum>=pagenum:
+	pagenum = startNum
+	while startNum + allNum>pagenum:
 		try:
 			print('deleting picture ' + str(pagenum))
 			file_name = os.path.join(path, str(pagenum) + PAGE_IMAGE_EXT)
@@ -136,8 +127,7 @@ if __name__ == '__main__':
 	title = result[0][0]
 	url = result[1]
 	print(title, url)
-	allNum = getPictures(url, path)
+	startNum, allNum = getPictures(url, path)
 	pdfName = os.path.join(path, title + '.pdf')
-	# combinePictures2Pdf(path, pdfName, allNum)
-	combinePictures2Pdf2(path, pdfName, allNum)
-	removePictures(path, allNum)
+	combinePictures2Pdf2(path, pdfName, startNum, allNum)
+	removePictures(path, startNum, allNum)
