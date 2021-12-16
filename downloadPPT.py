@@ -28,10 +28,10 @@ def getTiltleUrl(originUrl):
 	html = etree.HTML(requests.get(originUrl).text)
 	theHTML = etree.tostring(html).decode('utf-8')
 	# print(theHTML)
-	try:
-		title = html.xpath('//span[@class="doc_title fs_c_76"]/text()')
-	except:
-		title = html.xpath('//title/text()')
+	# try:
+	# 	title = html.xpath('//span[@class="doc_title fs_c_76"]/text()')[0]
+	# except:
+	title = html.xpath('//title/text()')
 	fileId = re.findall('\-\d+\.',originUrl)[0][1:-1]
 
 	sid = re.findall('flash_param_hzq:\"[\w\*\-]+\"', theHTML)[0][17:-1]
