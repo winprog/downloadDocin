@@ -7,6 +7,9 @@ from joblib import Parallel, delayed
 import multiprocessing
 import img2pdf
 
+# 图片保存格式
+PAGE_IMAGE_EXT = ".jpg"
+
 def getTiltleUrl(originUrl):
 	# 获取资料的标题和通用的url链接
 	html = etree.HTML(requests.get(originUrl).text)
@@ -32,12 +35,17 @@ def getPicture(headers, theurl, pagenum, path):
 		print('Downloading picture ' + str(pagenum) + ' failed, and it may be the end page.')
 		return False
 
-	file_name = os.path.join(path, str(pagenum) + '.png')
+	file_name = os.path.join(path, str(pagenum) + PAGE_IMAGE_EXT)
 	f = open(file_name, 'wb')
 	f.write(img_req.content)
 	f.close()
-	# 将图片保存为标准png格式
+
+	# 将图片保存为标准格式
+	# PIL img P mode can't be save as jpg.
 	im = Image.open(file_name)
+	if im.mode == "P":
+		im = im.convert("RGB")
+
 	im.save(file_name)
 	print('picture ' + str(pagenum) + ' is downloaded.')
 	return True
@@ -71,7 +79,7 @@ def combinePictures2Pdf(path, pdfName, allNum):
 	# 合并图片为pdf
 	print('Start combining the pictures...')
 	pagenum = 1
-	file_name = os.path.join(path, str(pagenum) + '.png')
+	file_name = os.path.join(path, str(pagenum) + PAGE_IMAGE_EXT)
 	cover = Image.open(file_name)
 	width, height = cover.size
 	cover.close()
@@ -79,7 +87,7 @@ def combinePictures2Pdf(path, pdfName, allNum):
 	while allNum>=pagenum:
 		try:
 			print('combining picture ' + str(pagenum))
-			file_name = os.path.join(path, str(pagenum) + '.png')
+			file_name = os.path.join(path, str(pagenum) + PAGE_IMAGE_EXT)
 			pdf.add_page()
 			pdf.image(file_name, 0, 0)
 			pagenum += 1
@@ -93,13 +101,13 @@ def combinePictures2Pdf2(path, pdfName, allNum):
 	# 合并图片为pdf
 	print('Start combining the pictures...')
 	pagenum = 1
-	file_name = os.path.join(path, str(pagenum) + '.png')
+	file_name = os.path.join(path, str(pagenum) + PAGE_IMAGE_EXT)
 	cover = Image.open(file_name)
 	width, height = cover.size
 	cover.close()
 
 	filename = pdfName
-	images = [os.path.join(path, str(pagenum)+".png") for pagenum in range(1, allNum)]
+	images = [os.path.join(path, str(pagenum)+PAGE_IMAGE_EXT) for pagenum in range(1, allNum)]
 	with open(filename, "wb") as f:
 		f.write(img2pdf.convert(images))
 	
@@ -110,7 +118,7 @@ def removePictures(path, allNum):
 	while allNum>=pagenum:
 		try:
 			print('deleting picture ' + str(pagenum))
-			file_name = os.path.join(path, str(pagenum) + '.png')
+			file_name = os.path.join(path, str(pagenum) + PAGE_IMAGE_EXT)
 			os.remove(file_name)
 			pagenum += 1
 		except Exception as e:
@@ -128,8 +136,7 @@ if __name__ == '__main__':
 	title = result[0][0]
 	url = result[1]
 	print(title, url)
-	# allNum = getPictures(url, path)
-	allNum = 227
+	allNum = getPictures(url, path)
 	pdfName = os.path.join(path, title + '.pdf')
 	# combinePictures2Pdf(path, pdfName, allNum)
 	combinePictures2Pdf2(path, pdfName, allNum)
