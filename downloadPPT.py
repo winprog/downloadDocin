@@ -29,7 +29,7 @@ def getTiltleUrl(originUrl):
 	theHTML = etree.tostring(html).decode('utf-8')
 	# print(theHTML)
 	try:
-		title = html.xpath('//span[@class="doc_title fs_c_76"]/text()')[0]
+		title = html.xpath('//span[@class="doc_title fs_c_76"]/text()')
 	except:
 		title = html.xpath('//title/text()')
 	fileId = re.findall('\-\d+\.',originUrl)[0][1:-1]
@@ -51,7 +51,7 @@ def getPicture(headers, theurl, pagenum, path):
 	# 将图片保存为标准格式
 	# PIL img P mode can't be save as jpg.
 	im = Image.open(file_name)
-	if im.mode == "P":
+	if im.mode != "RGB":
 		im = im.convert("RGB")
 
 	im.save(file_name)
